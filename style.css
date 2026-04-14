@@ -1,0 +1,29 @@
+:root {
+    --primary: #3b82f6; --primary-dark: #2563eb; --success: #10b981;
+    --warning: #f59e0b; --danger: #ef4444; --bg: #0f172a;
+    --card-bg: #1e293b; --text: #f8fafc; --border: #334155;
+    --bg-admin: #f1f5f9; --text-admin: #0f172a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); }
+
+/* Layout Admin */
+.app { display: flex; min-height: 100vh; color: var(--text-admin); }
+.sidebar { width: 260px; background: #fff; border-right: 1px solid #e2e8f0; position: fixed; height: 100vh; display: flex; flex-direction: column; }
+.main { flex: 1; margin-left: 260px; background: var(--bg-admin); }
+.topbar { background: #fff; padding: 16px 32px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
+
+/* Cards & Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
+.stat-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; }
+.card { background: #fff; margin: 20px; border-radius: 12px; padding: 20px; }
+
+/* Mobile App (index.html) */
+.mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 20px; text-align: center; }
+.scan-container { width: 280px; height: 280px; margin: 20px auto; border-radius: 50%; border: 4px solid var(--primary); overflow: hidden; position: relative; background: #000; }
+video { width: 100%; height: 100%; object-fit: cover; }
+
+.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
+.btn-primary { background: var(--primary); color: white; }
+
+@media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
