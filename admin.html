@@ -1,30 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Portal</title>
-    <link rel="stylesheet" href="style.css"> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Admin LevelUp HR</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="sidebar">
-        <button onclick="loadModule('dashboard')">Dashboard</button>
-        <button onclick="loadModule('laporan')">Laporan Absensi</button>
+    <div class="app">
+        <aside class="sidebar">
+            <div style="padding:24px; font-weight:bold; border-bottom:1px solid #eee">LevelUp Admin</div>
+            <nav style="padding:10px">
+                <button class="btn" onclick="location.href='admin.html'">Dashboard</button>
+                <button class="btn" onclick="alert('Buka Laporan')">Laporan</button>
+                <button class="btn" onclick="location.href='index.html'">Mode Absen</button>
+            </nav>
+        </aside>
+        <main class="main">
+            <div class="topbar"><h2>Dashboard Overview</h2></div>
+            <div id="stats-container" class="stats-grid">
+                <p>Loading stats...</p>
+            </div>
+            <div class="card">
+                <canvas id="myChart" style="max-height: 300px;"></canvas>
+            </div>
+        </main>
     </div>
 
-    <div id="main-content">
-        </div>
+    <script>
+        const API_URL = "URL_WEB_APP_GAS_ANDA"; // Ganti dengan URL GAS
 
-    <script src="api-connector.js"></script> <script>
-        function loadModule(module) {
-            const content = document.getElementById('main-content');
-            if (module === 'dashboard') {
-                renderDashboard(content);
-            } else if (module === 'laporan') {
-                renderLaporan(content);
+        async function fetchStats() {
+            const res = await fetch(`${API_URL}?action=getStats`);
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('stats-container').innerHTML = `
+                    <div class="stat-card"><div>Hadir</div><strong>${data.stats.totalHadir}</strong></div>
+                    <div class="stat-card"><div>Terlambat</div><strong>${data.stats.totalTerlambat}</strong></div>
+                `;
             }
         }
-        
-        // Load default page
-        window.onload = () => loadModule('dashboard');
+        window.onload = () => { fetchStats(); lucide.createIcons(); };
     </script>
 </body>
 </html>
