@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Portal</title>
+    <link rel="stylesheet" href="style.css"> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <button onclick="loadModule('dashboard')">Dashboard</button>
+        <button onclick="loadModule('laporan')">Laporan Absensi</button>
+    </div>
+
+    <div id="main-content">
+        </div>
+
+    <script src="api-connector.js"></script> <script>
+        function loadModule(module) {
+            const content = document.getElementById('main-content');
+            if (module === 'dashboard') {
+                renderDashboard(content);
+            } else if (module === 'laporan') {
+                renderLaporan(content);
+            }
+        }
+        
+        // Load default page
+        window.onload = () => loadModule('dashboard');
+    </script>
+</body>
+</html>
