@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Presensi Digital</h2>
+        
+        <form id="absenForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium">Nama Lengkap</label>
+                <input type="text" id="nama" required class="w-full p-2 border rounded-md">
+            </div>
 
+            <div class="space-y-2">
+                <label class="block text-sm font-medium">Ambil Selfie</label>
+                <video id="video" width="100%" autoplay class="rounded-md bg-black"></video>
+                <button type="button" id="snap" class="w-full bg-gray-500 text-white py-1 rounded-md text-sm">Ambil Foto</button>
+                <canvas id="canvas" class="hidden"></canvas>
+                <img id="photoPreview" class="hidden w-full rounded-md border-2 border-green-500">
+            </div>
+
+            <p id="locationStatus" class="text-xs text-gray-500 italic text-center italic"></p>
+
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition">ABSEN SEKARANG</button>
+        </form>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxuxtSl5ORQ0PQpjMrGNX3kC3YtTVjAAMuUTgfNYhv1exwZxMhpNfVEzHCexl23Syxo/exec';
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const photoPreview = document.getElementById('photoPreview');
+        const snap = document.getElementById('snap');
+        let fotoData = "";
+        let lokasiData = "Mencari lokasi...";
+
+        // 1. Akses Kamera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => alert("Izin kamera ditolak!"));
+
+        // 2. Ambil Foto
+        snap.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            fotoData = canvas.toDataURL('image/jpeg', 0.5); // Kompres kualitas ke 0.5
+            photoPreview.src = fotoData;
+            photoPreview.classList.remove('hidden');
+            video.classList.add('hidden');
+        });
+
+        // 3. Ambil Lokasi GPS
+        navigator.geolocation.getCurrentPosition(pos => {
+            lokasiData = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            document.getElementById('locationStatus').innerText = "Lokasi terkunci: " + lokasiData;
+        }, err => {
+            lokasiData = "Lokasi tidak diizinkan";
+            document.getElementById('locationStatus').innerText = lokasiData;
+        });
+
+        // 4. Kirim Data ke Google Sheets
+        document.getElementById('absenForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Mengirim...";
+
+            if(!fotoData) return alert("Ambil foto dulu!");
+
+            const payload = {
+                nama: document.getElementById('nama').value,
+                lokasi: lokasiData,
+                foto: fotoData
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert("Absen Berhasil!");
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ABSEN SEKARANG";
+            });
+        });
+    </script>
+</body>
+</html>
