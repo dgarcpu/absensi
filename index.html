@@ -1,181 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Admin LevelUp HR</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
+    <title>Absensi LevelUp</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        /* CSS Root & Global dari getCSS() */
-        :root{--primary:#3b82f6;--primary-dark:#2563eb;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#06b6d4;--bg:#0f172a;--card-bg:#1e293b;--text:#f8fafc;--text-muted:#94a3b8;--gray:#64748b;--border:#334155;--bg-admin:#f1f5f9;--text-admin:#0f172a}
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-        
-        /* Layout Admin */
-        .app{display:flex;min-height:100vh;color:var(--text-admin)}
-        .sidebar{width:260px;background:#fff;border-right:1px solid #e2e8f0;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;display:flex}
-        .sidebar-header{padding:24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #f1f5f9}
-        .logo-icon{width:40px;height:40px;background:#eff6ff;color:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center}
-        .logo-text h1{font-size:18px;font-weight:700;color:#1e293b;line-height:1.2}
-        .nav{padding:24px 16px;flex:1}
-        .nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;color:#64748b;border-radius:8px;cursor:pointer;margin-bottom:4px}
-        .nav-item.active{background:#eff6ff;color:var(--primary);font-weight:600}
-        .main{flex:1;background:var(--bg-admin);margin-left:260px;display:flex;flex-direction:column}
-        .topbar{background:#fff;padding:16px 32px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
-        .content{padding:32px;width:100%}
-        
-        /* Modals, Tables, Cards (Sesuai kode anda) */
-        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-bottom:32px}
-        .stat-card{background:#fff;padding:24px;border-radius:16px;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
-        .card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;margin-bottom:24px}
-        .table{width:100%;border-collapse:collapse}
-        .table th{text-align:left;padding:12px 16px;font-size:12px;color:#64748b;border-bottom:1px solid #e2e8f0}
-        .table td{padding:16px;font-size:14px;border-bottom:1px solid #f1f5f9}
-        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:999}
-        .modal-overlay.active{display:flex}
-        .modal{background:#fff;width:100%;max-width:400px;border-radius:16px;overflow:hidden}
-        
-        /* Mobile adjustment */
-        @media(max-width:768px){
-            .sidebar{display:none}
-            .main{margin-left:0}
-        }
-    </style>
 </head>
 <body>
+    <div class="mobile-app">
+        <h2>Presensi Wajah</h2>
+        <p id="status">Menginisialisasi Kamera...</p>
+        
+        <div class="scan-container">
+            <video id="video" autoplay muted></video>
+        </div>
 
-<div id="root">
-    <div class="app">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-icon"><i data-lucide="briefcase"></i></div>
-                <div class="logo-text"><h1>Admin LevelUp</h1><p>HR Portal</p></div>
-            </div>
-            <nav class="nav">
-                <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><i data-lucide="home"></i><span>Dashboard</span></div>
-                <div class="nav-item" onclick="showPage('laporan')" data-page="laporan"><i data-lucide="clipboard-check"></i><span>Laporan Absensi</span></div>
-                <div class="nav-item" onclick="showPage('karyawan')" data-page="karyawan"><i data-lucide="users"></i><span>Data Karyawan</span></div>
-                <div class="nav-item" onclick="showPage('pengaturan')" data-page="pengaturan"><i data-lucide="settings"></i><span>Pengaturan</span></div>
-            </nav>
-        </aside>
-        <main class="main">
-            <div class="topbar">
-                <h2 id="page-title">Dashboard</h2>
-                <div class="topbar-right">
-                    <button class="btn btn-primary" onclick="loadData()">Refresh Data</button>
-                </div>
-            </div>
-            <div class="content" id="main-content">
-                <p>Memuat data...</p>
-            </div>
-        </main>
+        <div id="info-karyawan" class="card" style="color:black; display:none">
+            <p id="nama-user"></p>
+            <button class="btn btn-primary" onclick="submitAbsen()">Konfirmasi Hadir</button>
+        </div>
     </div>
-</div>
 
-<div class="modal-overlay" id="modal"></div>
+    <script>
+        const video = document.getElementById('video');
 
-<script>
-    // --- KONFIGURASI ---
-    // GANTI INI DENGAN URL WEB APP GAS ANDA SETELAH DI-DEPLOY
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOt5UH6NWizDEMPIgfGpoKsu_pocmHs6IPGA_naAcAUu3mERPLAROJ2K44KczYC3cHew/exec";
-
-    let currentPage = 'dashboard';
-    let employees = [];
-    let attendance = [];
-    let stats = {};
-    let appSettings = {jamMasuk:'08:00', jamPulang:'17:00'};
-    const colors = ['blue','green','orange','purple','cyan'];
-
-    // --- FUNGSI KOMUNIKASI API (PENGGANTI google.script.run) ---
-    async function apiRequest(action, params = {}) {
-        const url = new URL(WEB_APP_URL);
-        url.searchParams.append('action', action);
-        for (let key in params) url.searchParams.append(key, params[key]);
-
-        try {
-            const response = await fetch(url);
-            return await response.json();
-        } catch (e) {
-            console.error("API Error:", e);
-            return { success: false, message: "Gagal terhubung ke server" };
-        }
-    }
-
-    // --- LOGIKA HALAMAN (Dikonversi dari getAdminJS) ---
-    document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
-        loadData();
-    });
-
-    async function loadData() {
-        const rStats = await apiRequest('getStats');
-        if(rStats.success) stats = rStats.stats;
-
-        const rSettings = await apiRequest('getSettings');
-        if(rSettings.success) appSettings = rSettings.data;
-
-        const rAtt = await apiRequest('getAttendanceLog');
-        if(rAtt.success) attendance = rAtt.attendance;
-
-        const rEmp = await apiRequest('getEmployeeList');
-        if(rEmp.success) employees = rEmp.employees;
-
-        renderPage();
-    }
-
-    function showPage(p) {
-        currentPage = p;
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.querySelector(`[data-page="${p}"]`).classList.add('active');
-        document.getElementById('page-title').textContent = p.charAt(0).toUpperCase() + p.slice(1);
-        renderPage();
-    }
-
-    function renderPage() {
-        if(currentPage === 'dashboard') renderDashboard();
-        else if(currentPage === 'laporan') renderLaporan();
-        else if(currentPage === 'karyawan') renderKaryawan();
-        else if(currentPage === 'pengaturan') renderPengaturan();
-        lucide.createIcons();
-    }
-
-    // Contoh Fungsi Render (Sama dengan logika GAS Anda)
-    function renderDashboard() {
-        const c = document.getElementById('main-content');
-        let html = `
-            <div class="stats-grid">
-                <div class="stat-card"><div><h3>Hadir</h3><div class="value">${stats.totalHadir || 0}</div></div><i data-lucide="user-check"></i></div>
-                <div class="stat-card"><div><h3>Terlambat</h3><div class="value">${stats.totalTerlambat || 0}</div></div><i data-lucide="clock"></i></div>
-            </div>
-            <div class="card"><div class="card-body"><canvas id="attChart"></canvas></div></div>
-        `;
-        c.innerHTML = html;
-        if(stats.monthly) renderChart(stats.monthly);
-    }
-
-    function renderChart(data) {
-        const ctx = document.getElementById('attChart');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.labels,
-                datasets: [{ label: 'Hadir', data: data.hadir, backgroundColor: '#10b981' }]
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+                document.getElementById('status').innerText = "Kamera Aktif. Silakan arahkan wajah.";
+            } catch (err) {
+                document.getElementById('status').innerText = "Kamera Gagal: " + err;
             }
-        });
-    }
+        }
 
-    // Fungsi helper lainnya (getColor, getInit, dll) tetap sama...
-    function getColor(i){return colors[i%colors.length];}
-    function getInit(n){if(!n)return'';var p=n.split(' ');if(p.length===1)return p[0].substring(0,2).toUpperCase();return(p[0][0]+p[1][0]).toUpperCase();}
-</script>
+        // Jalankan kamera langsung
+        startVideo();
+    </script>
 </body>
 </html>
