@@ -157,6 +157,15 @@ const Admin = (() => {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  /**
+   * Pembersihan waktu dari string 1899 jika ada
+   */
+  function cleanTime(s) {
+    if (!s || s === '-') return '-';
+    var match = String(s).match(/(\d{1,2}:\d{1,2}:\d{1,2})/);
+    return match ? match[1] : s;
+  }
+
   // ============================================================
   // MODALS
   // ============================================================
@@ -318,8 +327,9 @@ const Admin = (() => {
       if (!grouped[row.nik]) {
         grouped[row.nik] = { nik: row.nik, nama: row.nama, masuk: '-', keluar: '-' };
       }
-      if (row.jenis === 'masuk') grouped[row.nik].masuk = row.jam;
-      if (row.jenis === 'keluar') grouped[row.nik].keluar = row.jam;
+      var jam = cleanTime(row.jam);
+      if (row.jenis === 'masuk') grouped[row.nik].masuk = jam;
+      if (row.jenis === 'keluar') grouped[row.nik].keluar = jam;
     });
 
     var html = '';
@@ -526,17 +536,21 @@ const Admin = (() => {
     var html = '';
     list.forEach(function (a) {
       var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
-      var fotoBtn = a.foto_url
-        ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + a.jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
+      var jam = cleanTime(a.jam);
+      var fotoBtn = a.foto_url && String(a.foto_url).includes('http')
+        ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
         : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
+
+      var lat = a.latitude && !isNaN(a.latitude) ? Number(a.latitude).toFixed(5) : '-';
+      var lng = a.longitude && !isNaN(a.longitude) ? Number(a.longitude).toFixed(5) : '-';
 
       html += '<tr>' +
         '<td>' + a.tanggal + '</td>' +
         '<td><strong>' + a.nik + '</strong></td>' +
         '<td>' + a.nama + '</td>' +
-        '<td>' + a.jam + '</td>' +
+        '<td>' + jam + '</td>' +
         '<td><span class="table-badge ' + jenisClass + '">' + a.jenis + '</span></td>' +
-        '<td style="font-size:0.75rem;color:var(--text-muted)">' + (a.latitude ? a.latitude.toFixed(5) + ', ' + a.longitude.toFixed(5) : '-') + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-muted)">' + (lat !== '-' ? lat + ', ' + lng : '-') + '</td>' +
         '<td style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + (a.alamat || '-') + '">' + (a.alamat || '-') + '</td>' +
         '<td>' + fotoBtn + '</td>' +
         '</tr>';
