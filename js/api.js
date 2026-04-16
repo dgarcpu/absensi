@@ -35,7 +35,7 @@ const Api = (() => {
       }
 
       const text = await response.text();
-      
+
       try {
         return JSON.parse(text);
       } catch (parseError) {
