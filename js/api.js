@@ -8,7 +8,7 @@ const Api = (() => {
   // ============================================================
   // CONFIGURATION - Ganti URL ini dengan URL Web App GAS Anda
   // ============================================================
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbxA7ucIrniVm4_bh7zPzyq_rlPAKUp-yPoP7HsKbMLMfHTXWmcM4HfMAckWybcnoIOs/exec';
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbxGw49UzKwqrgPkNGB92YWCydpdEJSJJ1MiZs3gzARxAdxEEM4xONaFsyRVbdOJ2sKl/exec';
 
   // ============================================================
   // HTTP Methods
