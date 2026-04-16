@@ -41,7 +41,7 @@ const Admin = (() => {
 
   function getSession() {
     var data = sessionStorage.getItem('absensi_user');
-    if (data) { try { return JSON.parse(data); } catch(e) { return null; } }
+    if (data) { try { return JSON.parse(data); } catch (e) { return null; } }
     return null;
   }
 
@@ -68,13 +68,13 @@ const Admin = (() => {
       '<button class="notification-close" aria-label="Tutup"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
       '<div class="notification-progress"></div>';
 
-    notif.querySelector('.notification-close').addEventListener('click', function() {
+    notif.querySelector('.notification-close').addEventListener('click', function () {
       notif.classList.add('hide');
-      setTimeout(function() { notif.remove(); }, 300);
+      setTimeout(function () { notif.remove(); }, 300);
     });
 
     container.appendChild(notif);
-    setTimeout(function() { if (notif.parentNode) { notif.classList.add('hide'); setTimeout(function() { notif.remove(); }, 300); } }, 4000);
+    setTimeout(function () { if (notif.parentNode) { notif.classList.add('hide'); setTimeout(function () { notif.remove(); }, 300); } }, 4000);
   }
 
   function showLoading(text, sub) {
@@ -97,8 +97,8 @@ const Admin = (() => {
 
   function bindNavigation() {
     var links = document.querySelectorAll('.sidebar-link[data-page]');
-    links.forEach(function(link) {
-      link.addEventListener('click', function() {
+    links.forEach(function (link) {
+      link.addEventListener('click', function () {
         var page = this.getAttribute('data-page');
         switchPage(page);
       });
@@ -109,19 +109,19 @@ const Admin = (() => {
     var overlay = document.getElementById('sidebarOverlay');
     var sidebar = document.getElementById('adminSidebar');
 
-    if (toggle) toggle.addEventListener('click', function() {
+    if (toggle) toggle.addEventListener('click', function () {
       sidebar.classList.toggle('open');
       overlay.classList.toggle('active');
     });
 
-    if (overlay) overlay.addEventListener('click', function() {
+    if (overlay) overlay.addEventListener('click', function () {
       sidebar.classList.remove('open');
       overlay.classList.remove('active');
     });
 
     // Logout
     var logoutBtn = document.getElementById('adminLogoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', function() {
+    if (logoutBtn) logoutBtn.addEventListener('click', function () {
       sessionStorage.removeItem('absensi_user');
       window.location.href = 'index.html';
     });
@@ -129,14 +129,14 @@ const Admin = (() => {
 
   function switchPage(page) {
     // Update active nav
-    document.querySelectorAll('.sidebar-link[data-page]').forEach(function(l) {
+    document.querySelectorAll('.sidebar-link[data-page]').forEach(function (l) {
       l.classList.remove('active');
     });
     var activeLink = document.querySelector('.sidebar-link[data-page="' + page + '"]');
     if (activeLink) activeLink.classList.add('active');
 
     // Update content
-    document.querySelectorAll('.admin-content').forEach(function(c) {
+    document.querySelectorAll('.admin-content').forEach(function (c) {
       c.classList.remove('active');
     });
 
@@ -164,7 +164,7 @@ const Admin = (() => {
   function bindModals() {
     // Karyawan Modal
     var addBtn = document.getElementById('addKaryawanBtn');
-    if (addBtn) addBtn.addEventListener('click', function() { openKaryawanModal('add'); });
+    if (addBtn) addBtn.addEventListener('click', function () { openKaryawanModal('add'); });
 
     var closeK = document.getElementById('karyawanModalClose');
     var cancelK = document.getElementById('karyawanCancelBtn');
@@ -180,14 +180,14 @@ const Admin = (() => {
     var confirmD = document.getElementById('deleteConfirmBtn');
     if (closeD) closeD.addEventListener('click', closeDeleteModal);
     if (cancelD) cancelD.addEventListener('click', closeDeleteModal);
-    if (confirmD) confirmD.addEventListener('click', function() {
+    if (confirmD) confirmD.addEventListener('click', function () {
       if (deleteCallback) deleteCallback();
       closeDeleteModal();
     });
 
     // Photo Viewer
     var closeP = document.getElementById('photoViewerClose');
-    if (closeP) closeP.addEventListener('click', function() {
+    if (closeP) closeP.addEventListener('click', function () {
       document.getElementById('photoViewerModal').classList.remove('active');
     });
 
@@ -203,7 +203,7 @@ const Admin = (() => {
     if (filterBtn) filterBtn.addEventListener('click', loadAbsensi);
 
     var resetBtn = document.getElementById('resetFilterBtn');
-    if (resetBtn) resetBtn.addEventListener('click', function() {
+    if (resetBtn) resetBtn.addEventListener('click', function () {
       document.getElementById('filterTanggalDari').value = '';
       document.getElementById('filterTanggalSampai').value = '';
       document.getElementById('filterNik').value = '';
@@ -314,7 +314,7 @@ const Admin = (() => {
 
     // Group by NIK
     var grouped = {};
-    data.forEach(function(row) {
+    data.forEach(function (row) {
       if (!grouped[row.nik]) {
         grouped[row.nik] = { nik: row.nik, nama: row.nama, masuk: '-', keluar: '-' };
       }
@@ -323,7 +323,7 @@ const Admin = (() => {
     });
 
     var html = '';
-    Object.values(grouped).forEach(function(row) {
+    Object.values(grouped).forEach(function (row) {
       var statusClass = 'badge-warning';
       var statusText = 'Belum Lengkap';
       if (row.masuk !== '-' && row.keluar !== '-') {
@@ -376,7 +376,7 @@ const Admin = (() => {
     }
 
     var html = '';
-    list.forEach(function(k) {
+    list.forEach(function (k) {
       var statusClass = (k.status && k.status.toLowerCase() === 'aktif') ? 'badge-success' : 'badge-danger';
       html += '<tr>' +
         '<td><strong>' + k.nik + '</strong></td>' +
@@ -384,33 +384,33 @@ const Admin = (() => {
         '<td>' + k.jabatan + '</td>' +
         '<td><span class="table-badge ' + statusClass + '">' + (k.status || '-') + '</span></td>' +
         '<td class="table-actions">' +
-          '<button class="btn-table btn-table-edit" data-nik="' + k.nik + '" title="Edit">' +
-            '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
-          '</button>' +
-          '<button class="btn-table btn-table-delete" data-nik="' + k.nik + '" title="Hapus">' +
-            '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
-          '</button>' +
+        '<button class="btn-table btn-table-edit" data-nik="' + k.nik + '" title="Edit">' +
+        '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+        '</button>' +
+        '<button class="btn-table btn-table-delete" data-nik="' + k.nik + '" title="Hapus">' +
+        '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+        '</button>' +
         '</td></tr>';
     });
 
     tbody.innerHTML = html;
 
     // Bind edit buttons
-    tbody.querySelectorAll('.btn-table-edit').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    tbody.querySelectorAll('.btn-table-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var nik = this.getAttribute('data-nik');
-        var kary = list.find(function(k) { return k.nik === nik; });
+        var kary = list.find(function (k) { return k.nik === nik; });
         if (kary) openKaryawanModal('edit', kary);
       });
     });
 
     // Bind delete buttons
-    tbody.querySelectorAll('.btn-table-delete').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    tbody.querySelectorAll('.btn-table-delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var nik = this.getAttribute('data-nik');
-        var kary = list.find(function(k) { return k.nik === nik; });
+        var kary = list.find(function (k) { return k.nik === nik; });
         var nama = kary ? kary.nama : nik;
-        openDeleteModal('Yakin ingin menghapus karyawan "' + nama + '" (NIK: ' + nik + ')?', function() {
+        openDeleteModal('Yakin ingin menghapus karyawan "' + nama + '" (NIK: ' + nik + ')?', function () {
           deleteKaryawan(nik);
         });
       });
@@ -524,7 +524,7 @@ const Admin = (() => {
     }
 
     var html = '';
-    list.forEach(function(a) {
+    list.forEach(function (a) {
       var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
       var fotoBtn = a.foto_url
         ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + a.jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
@@ -544,8 +544,8 @@ const Admin = (() => {
     tbody.innerHTML = html;
 
     // Bind photo view buttons
-    tbody.querySelectorAll('.btn-table-view').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    tbody.querySelectorAll('.btn-table-view').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var url = this.getAttribute('data-url');
         var info = this.getAttribute('data-info');
         document.getElementById('photoViewerImg').src = url;
