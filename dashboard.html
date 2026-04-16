@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Dashboard Absensi Karyawan - Catat kehadiran masuk dan keluar dengan foto dan lokasi GPS">
+  <meta name="theme-color" content="#1a4a8a">
+  <title>Dashboard - Sistem Absensi Karyawan</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a4a8a'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="dashboard-page" id="dashboardPage">
+    
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <div class="nav-brand">
+        <div class="nav-brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </div>
+        <h2>Absensi</h2>
+      </div>
+      <div class="nav-user">
+        <div class="nav-user-info">
+          <div class="nav-user-name" id="navUserName">-</div>
+          <div class="nav-user-role" id="navUserRole">-</div>
+        </div>
+        <button class="btn-logout" id="logoutBtn" title="Keluar">
+          <svg viewBox="0 0 24 24">
+            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+          </svg>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Welcome Card -->
+      <div class="welcome-card" id="welcomeCard">
+        <div class="welcome-greeting">Selamat datang,</div>
+        <div class="welcome-name" id="welcomeName">-</div>
+        <div class="welcome-role">
+          <span class="badge" id="welcomeRole">-</span>
+        </div>
+      </div>
+
+      <!-- Clock Card -->
+      <div class="clock-card" id="clockCard">
+        <div class="clock-date" id="clockDate">-</div>
+        <div class="clock-time">
+          <span id="clockHours">00</span>:<span id="clockMinutes">00</span><span class="clock-seconds">:<span id="clockSeconds">00</span></span>
+        </div>
+      </div>
+
+      <!-- Status Card -->
+      <div class="status-card" id="statusCard">
+        <h3>Status Absensi Hari Ini</h3>
+        <div class="status-items">
+          <div class="status-item inactive" id="statusMasuk">
+            <div class="status-item-label">Masuk</div>
+            <div class="status-item-value" id="statusMasukValue">Belum Absen</div>
+          </div>
+          <div class="status-item inactive" id="statusKeluar">
+            <div class="status-item-label">Keluar</div>
+            <div class="status-item-value" id="statusKeluarValue">Belum Absen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-card" id="actionCard">
+        <h3>Aksi Absensi</h3>
+        <div class="action-buttons">
+          <button class="action-btn action-btn-masuk" id="btnAbsenMasuk" title="Absen Masuk">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
+              </svg>
+            </div>
+            <span>Absen Masuk</span>
+          </button>
+          <button class="action-btn action-btn-keluar" id="btnAbsenKeluar" title="Absen Keluar" disabled>
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+              </svg>
+            </div>
+            <span>Absen Keluar</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Camera Modal -->
+  <div class="modal-overlay" id="cameraModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Absen Masuk</h3>
+        <button class="modal-close" id="modalClose" aria-label="Tutup">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Camera Section -->
+        <div class="camera-section" id="cameraSection">
+          <div class="camera-container" id="cameraContainer">
+            <video id="cameraVideo" autoplay playsinline muted></video>
+            <canvas id="cameraCanvas"></canvas>
+            <div class="camera-placeholder" id="cameraPlaceholder">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 15.2l3.2-2.8H14V8h-4v4.4H8.8L12 15.2zM21 3H3C1.9 3 1 3.9 1 5v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+              </svg>
+              <span>Memuat kamera...</span>
+            </div>
+          </div>
+          <div class="camera-actions">
+            <button class="capture-btn" id="captureBtn" title="Ambil Foto"></button>
+          </div>
+        </div>
+
+        <!-- Photo Preview -->
+        <div class="photo-preview" id="photoPreview">
+          <img id="photoImage" alt="Preview foto absensi">
+          <button class="retake-btn" id="retakeBtn">
+            ↻ Ulangi Foto
+          </button>
+        </div>
+
+        <!-- Location Info -->
+        <div class="location-info loading" id="locationInfo">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <div class="location-text">
+            <strong>Lokasi GPS</strong>
+            <span id="locationCoords">Mengambil lokasi...</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modalCancelBtn">Batal</button>
+        <button class="btn btn-primary" id="modalSubmitBtn" disabled>
+          <svg viewBox="0 0 24 24">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+          <span>Kirim Absensi</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div class="notification-container" id="notificationContainer"></div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <p id="loadingText">Mengirim data absensi...</p>
+      <p class="loading-sub" id="loadingSubText">Mohon tunggu sebentar</p>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      App.initDashboard();
+    });
+  </script>
+</body>
+</html>
