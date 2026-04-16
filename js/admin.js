@@ -1,595 +1,424 @@
-/**
- * Admin Module - Handles admin panel logic
- * @module Admin
- */
-const Admin = (() => {
-  'use strict';
-
-  let currentUser = null;
-  let deleteCallback = null;
-
-  // ============================================================
-  // INITIALIZATION
-  // ============================================================
-
-  function init() {
-    currentUser = getSession();
-    if (!currentUser) {
-      window.location.href = 'index.html';
-      return;
-    }
-
-    // Check if user is admin
-    if (!isAdmin(currentUser)) {
-      showNotification('error', 'Akses Ditolak', 'Anda tidak memiliki akses admin');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
-      return;
-    }
-
-    document.getElementById('topbarUserName').textContent = currentUser.nama;
-
-    bindNavigation();
-    bindModals();
-    loadDashboard();
-  }
-
-  function isAdmin(user) {
-    if (!user || !user.jabatan) return false;
-    var jab = user.jabatan.toLowerCase().trim();
-    return jab === 'admin' || jab === 'administrator' || jab === 'superadmin';
-  }
-
-  function getSession() {
-    var data = sessionStorage.getItem('absensi_user');
-    if (data) { try { return JSON.parse(data); } catch (e) { return null; } }
-    return null;
-  }
-
-  // ============================================================
-  // NOTIFICATIONS (reuse from App module if loaded, else standalone)
-  // ============================================================
-
-  function showNotification(type, title, message) {
-    var container = document.getElementById('notificationContainer');
-    if (!container) return;
-
-    var icons = {
-      success: '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
-      error: '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
-      warning: '<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
-      info: '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
-    };
-
-    var notif = document.createElement('div');
-    notif.className = 'notification ' + type;
-    notif.innerHTML = '<div class="notification-icon">' + (icons[type] || icons.info) + '</div>' +
-      '<div class="notification-content"><div class="notification-title">' + title + '</div>' +
-      '<div class="notification-message">' + message + '</div></div>' +
-      '<button class="notification-close" aria-label="Tutup"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>' +
-      '<div class="notification-progress"></div>';
-
-    notif.querySelector('.notification-close').addEventListener('click', function () {
-      notif.classList.add('hide');
-      setTimeout(function () { notif.remove(); }, 300);
-    });
-
-    container.appendChild(notif);
-    setTimeout(function () { if (notif.parentNode) { notif.classList.add('hide'); setTimeout(function () { notif.remove(); }, 300); } }, 4000);
-  }
-
-  function showLoading(text, sub) {
-    var o = document.getElementById('loadingOverlay');
-    var t = document.getElementById('loadingText');
-    var s = document.getElementById('loadingSubText');
-    if (t) t.textContent = text || 'Memproses...';
-    if (s) s.textContent = sub || 'Mohon tunggu sebentar';
-    if (o) o.classList.add('active');
-  }
-
-  function hideLoading() {
-    var o = document.getElementById('loadingOverlay');
-    if (o) o.classList.remove('active');
-  }
-
-  // ============================================================
-  // SIDEBAR NAVIGATION
-  // ============================================================
-
-  function bindNavigation() {
-    var links = document.querySelectorAll('.sidebar-link[data-page]');
-    links.forEach(function (link) {
-      link.addEventListener('click', function () {
-        var page = this.getAttribute('data-page');
-        switchPage(page);
-      });
-    });
-
-    // Sidebar toggle (mobile)
-    var toggle = document.getElementById('sidebarToggle');
-    var overlay = document.getElementById('sidebarOverlay');
-    var sidebar = document.getElementById('adminSidebar');
-
-    if (toggle) toggle.addEventListener('click', function () {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('active');
-    });
-
-    if (overlay) overlay.addEventListener('click', function () {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-    });
-
-    // Logout
-    var logoutBtn = document.getElementById('adminLogoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', function () {
-      sessionStorage.removeItem('absensi_user');
-      window.location.href = 'index.html';
-    });
-  }
-
-  function switchPage(page) {
-    // Update active nav
-    document.querySelectorAll('.sidebar-link[data-page]').forEach(function (l) {
-      l.classList.remove('active');
-    });
-    var activeLink = document.querySelector('.sidebar-link[data-page="' + page + '"]');
-    if (activeLink) activeLink.classList.add('active');
-
-    // Update content
-    document.querySelectorAll('.admin-content').forEach(function (c) {
-      c.classList.remove('active');
-    });
-
-    var targetPage = document.getElementById('page' + capitalize(page));
-    if (targetPage) targetPage.classList.add('active');
-
-    // Close mobile sidebar
-    document.getElementById('adminSidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('active');
-
-    // Load data
-    if (page === 'dashboard') loadDashboard();
-    else if (page === 'karyawan') loadKaryawan();
-    else if (page === 'absensi') { /* wait for filter */ }
-  }
-
-  function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  /**
-   * Pembersihan waktu dari string 1899 jika ada
-   */
-  function cleanTime(s) {
-    if (!s || s === '-') return '-';
-    var match = String(s).match(/(\d{1,2}:\d{1,2}:\d{1,2})/);
-    return match ? match[1] : s;
-  }
-
-  // ============================================================
-  // MODALS
-  // ============================================================
-
-  function bindModals() {
-    // Karyawan Modal
-    var addBtn = document.getElementById('addKaryawanBtn');
-    if (addBtn) addBtn.addEventListener('click', function () { openKaryawanModal('add'); });
-
-    var closeK = document.getElementById('karyawanModalClose');
-    var cancelK = document.getElementById('karyawanCancelBtn');
-    if (closeK) closeK.addEventListener('click', closeKaryawanModal);
-    if (cancelK) cancelK.addEventListener('click', closeKaryawanModal);
-
-    var saveK = document.getElementById('karyawanSaveBtn');
-    if (saveK) saveK.addEventListener('click', saveKaryawan);
-
-    // Delete Modal
-    var closeD = document.getElementById('deleteModalClose');
-    var cancelD = document.getElementById('deleteCancelBtn');
-    var confirmD = document.getElementById('deleteConfirmBtn');
-    if (closeD) closeD.addEventListener('click', closeDeleteModal);
-    if (cancelD) cancelD.addEventListener('click', closeDeleteModal);
-    if (confirmD) confirmD.addEventListener('click', function () {
-      if (deleteCallback) deleteCallback();
-      closeDeleteModal();
-    });
-
-    // Photo Viewer
-    var closeP = document.getElementById('photoViewerClose');
-    if (closeP) closeP.addEventListener('click', function () {
-      document.getElementById('photoViewerModal').classList.remove('active');
-    });
-
-    // Refresh buttons
-    var refDash = document.getElementById('refreshDashboardBtn');
-    if (refDash) refDash.addEventListener('click', loadDashboard);
-
-    var refKar = document.getElementById('refreshKaryawanBtn');
-    if (refKar) refKar.addEventListener('click', loadKaryawan);
-
-    // Absensi filter
-    var filterBtn = document.getElementById('filterAbsenBtn');
-    if (filterBtn) filterBtn.addEventListener('click', loadAbsensi);
-
-    var resetBtn = document.getElementById('resetFilterBtn');
-    if (resetBtn) resetBtn.addEventListener('click', function () {
-      document.getElementById('filterTanggalDari').value = '';
-      document.getElementById('filterTanggalSampai').value = '';
-      document.getElementById('filterNik').value = '';
-      document.getElementById('absensiBody').innerHTML = '<tr><td colspan="8" class="table-empty">Gunakan filter untuk menampilkan data</td></tr>';
-      document.getElementById('recordCount').textContent = '0 data';
-    });
-
-    // Set default date filter to today
-    var today = new Date().toISOString().split('T')[0];
-    document.getElementById('filterTanggalDari').value = today;
-    document.getElementById('filterTanggalSampai').value = today;
-  }
-
-  // ============================================================
-  // KARYAWAN MODAL
-  // ============================================================
-
-  function openKaryawanModal(mode, data) {
-    var modal = document.getElementById('karyawanModal');
-    var title = document.getElementById('karyawanModalTitle');
-    var editMode = document.getElementById('karyawanEditMode');
-    var nikInput = document.getElementById('karyawanNik');
-    var namaInput = document.getElementById('karyawanNama');
-    var passInput = document.getElementById('karyawanPassword');
-    var jabInput = document.getElementById('karyawanJabatan');
-    var statusInput = document.getElementById('karyawanStatus');
-    var passHint = document.getElementById('passwordHint');
-
-    if (mode === 'edit' && data) {
-      title.textContent = 'Edit Karyawan';
-      editMode.value = 'edit';
-      nikInput.value = data.nik;
-      nikInput.readOnly = true;
-      nikInput.style.opacity = '0.6';
-      namaInput.value = data.nama;
-      passInput.value = '';
-      passInput.placeholder = 'Kosongkan jika tidak diubah';
-      passHint.textContent = 'Kosongkan jika tidak ingin mengubah password';
-      jabInput.value = data.jabatan;
-      statusInput.value = data.status ? data.status.toLowerCase() : 'aktif';
-    } else {
-      title.textContent = 'Tambah Karyawan';
-      editMode.value = 'add';
-      nikInput.value = '';
-      nikInput.readOnly = false;
-      nikInput.style.opacity = '1';
-      namaInput.value = '';
-      passInput.value = '';
-      passInput.placeholder = 'Masukkan password';
-      passHint.textContent = 'Password akan di-hash otomatis oleh sistem';
-      jabInput.value = '';
-      statusInput.value = 'aktif';
-    }
-
-    modal.classList.add('active');
-  }
-
-  function closeKaryawanModal() {
-    document.getElementById('karyawanModal').classList.remove('active');
-  }
-
-  function closeDeleteModal() {
-    document.getElementById('deleteModal').classList.remove('active');
-    deleteCallback = null;
-  }
-
-  function openDeleteModal(message, callback) {
-    document.getElementById('deleteMessage').textContent = message;
-    deleteCallback = callback;
-    document.getElementById('deleteModal').classList.add('active');
-  }
-
-  // ============================================================
-  // DASHBOARD
-  // ============================================================
-
-  async function loadDashboard() {
-    showLoading('Memuat dashboard...', 'Mengambil data ringkasan');
-
-    try {
-      var result = await Api.adminAction('admin_dashboard', {});
-      hideLoading();
-
-      if (result.status === 'success') {
-        var d = result.data;
-
-        document.getElementById('statTotalKaryawan').textContent = d.total_karyawan || 0;
-        document.getElementById('statHadirMasuk').textContent = d.hadir_masuk || 0;
-        document.getElementById('statHadirKeluar').textContent = d.hadir_keluar || 0;
-        document.getElementById('statBelumAbsen').textContent = d.belum_absen || 0;
-
-        renderTodayAbsen(d.today_data || []);
-      } else {
-        showNotification('error', 'Error', result.message);
-      }
-    } catch (err) {
-      hideLoading();
-      showNotification('error', 'Error', err.message);
-    }
-  }
-
-  function renderTodayAbsen(data) {
-    var tbody = document.getElementById('todayAbsenBody');
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Belum ada data absensi hari ini</td></tr>';
-      return;
-    }
-
-    // Group by NIK
-    var grouped = {};
-    data.forEach(function (row) {
-      if (!grouped[row.nik]) {
-        grouped[row.nik] = { nik: row.nik, nama: row.nama, masuk: '-', keluar: '-' };
-      }
-      var jam = cleanTime(row.jam);
-      if (row.jenis === 'masuk') grouped[row.nik].masuk = jam;
-      if (row.jenis === 'keluar') grouped[row.nik].keluar = jam;
-    });
-
-    var html = '';
-    Object.values(grouped).forEach(function (row) {
-      var statusClass = 'badge-warning';
-      var statusText = 'Belum Lengkap';
-      if (row.masuk !== '-' && row.keluar !== '-') {
-        statusClass = 'badge-success';
-        statusText = 'Lengkap';
-      } else if (row.masuk !== '-') {
-        statusClass = 'badge-info';
-        statusText = 'Sudah Masuk';
-      }
-      html += '<tr>' +
-        '<td>' + row.nik + '</td>' +
-        '<td><strong>' + row.nama + '</strong></td>' +
-        '<td>' + row.masuk + '</td>' +
-        '<td>' + row.keluar + '</td>' +
-        '<td><span class="table-badge ' + statusClass + '">' + statusText + '</span></td>' +
-        '</tr>';
-    });
-
-    tbody.innerHTML = html;
-  }
-
-  // ============================================================
-  // KARYAWAN CRUD
-  // ============================================================
-
-  async function loadKaryawan() {
-    showLoading('Memuat data karyawan...', 'Mengambil daftar karyawan');
-
-    try {
-      var result = await Api.adminAction('admin_get_karyawan', {});
-      hideLoading();
-
-      if (result.status === 'success') {
-        renderKaryawan(result.data.karyawan || []);
-      } else {
-        showNotification('error', 'Error', result.message);
-      }
-    } catch (err) {
-      hideLoading();
-      showNotification('error', 'Error', err.message);
-    }
-  }
-
-  function renderKaryawan(list) {
-    var tbody = document.getElementById('karyawanBody');
-
-    if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Belum ada data karyawan</td></tr>';
-      return;
-    }
-
-    var html = '';
-    list.forEach(function (k) {
-      var statusClass = (k.status && k.status.toLowerCase() === 'aktif') ? 'badge-success' : 'badge-danger';
-      html += '<tr>' +
-        '<td><strong>' + k.nik + '</strong></td>' +
-        '<td>' + k.nama + '</td>' +
-        '<td>' + k.jabatan + '</td>' +
-        '<td><span class="table-badge ' + statusClass + '">' + (k.status || '-') + '</span></td>' +
-        '<td class="table-actions">' +
-        '<button class="btn-table btn-table-edit" data-nik="' + k.nik + '" title="Edit">' +
-        '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
-        '</button>' +
-        '<button class="btn-table btn-table-delete" data-nik="' + k.nik + '" title="Hapus">' +
-        '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
-        '</button>' +
-        '</td></tr>';
-    });
-
-    tbody.innerHTML = html;
-
-    // Bind edit buttons
-    tbody.querySelectorAll('.btn-table-edit').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var nik = this.getAttribute('data-nik');
-        var kary = list.find(function (k) { return k.nik === nik; });
-        if (kary) openKaryawanModal('edit', kary);
-      });
-    });
-
-    // Bind delete buttons
-    tbody.querySelectorAll('.btn-table-delete').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var nik = this.getAttribute('data-nik');
-        var kary = list.find(function (k) { return k.nik === nik; });
-        var nama = kary ? kary.nama : nik;
-        openDeleteModal('Yakin ingin menghapus karyawan "' + nama + '" (NIK: ' + nik + ')?', function () {
-          deleteKaryawan(nik);
-        });
-      });
-    });
-  }
-
-  async function saveKaryawan() {
-    var mode = document.getElementById('karyawanEditMode').value;
-    var nik = document.getElementById('karyawanNik').value.trim();
-    var nama = document.getElementById('karyawanNama').value.trim();
-    var password = document.getElementById('karyawanPassword').value;
-    var jabatan = document.getElementById('karyawanJabatan').value.trim();
-    var status = document.getElementById('karyawanStatus').value;
-
-    if (!nik || !nama || !jabatan) {
-      showNotification('warning', 'Peringatan', 'NIK, Nama, dan Jabatan wajib diisi');
-      return;
-    }
-
-    if (mode === 'add' && !password) {
-      showNotification('warning', 'Peringatan', 'Password wajib diisi untuk karyawan baru');
-      return;
-    }
-
-    showLoading('Menyimpan karyawan...', '');
-    closeKaryawanModal();
-
-    try {
-      var action = mode === 'add' ? 'admin_add_karyawan' : 'admin_edit_karyawan';
-      var payload = { nik: nik, nama: nama, jabatan: jabatan, status: status };
-      if (password) payload.password = password;
-
-      var result = await Api.adminAction(action, payload);
-      hideLoading();
-
-      if (result.status === 'success') {
-        showNotification('success', 'Berhasil', result.message);
-        loadKaryawan();
-      } else {
-        showNotification('error', 'Gagal', result.message);
-      }
-    } catch (err) {
-      hideLoading();
-      showNotification('error', 'Error', err.message);
-    }
-  }
-
-  async function deleteKaryawan(nik) {
-    showLoading('Menghapus karyawan...', '');
-
-    try {
-      var result = await Api.adminAction('admin_delete_karyawan', { nik: nik });
-      hideLoading();
-
-      if (result.status === 'success') {
-        showNotification('success', 'Berhasil', result.message);
-        loadKaryawan();
-      } else {
-        showNotification('error', 'Gagal', result.message);
-      }
-    } catch (err) {
-      hideLoading();
-      showNotification('error', 'Error', err.message);
-    }
-  }
-
-  // ============================================================
-  // REKAP ABSENSI
-  // ============================================================
-
-  async function loadAbsensi() {
-    var dari = document.getElementById('filterTanggalDari').value;
-    var sampai = document.getElementById('filterTanggalSampai').value;
-    var search = document.getElementById('filterNik').value.trim();
-
-    if (!dari || !sampai) {
-      showNotification('warning', 'Peringatan', 'Pilih rentang tanggal');
-      return;
-    }
-
-    showLoading('Memuat data absensi...', 'Mengambil rekap absensi');
-
-    try {
-      var result = await Api.adminAction('admin_get_absensi', {
-        dari: dari,
-        sampai: sampai,
-        search: search,
-      });
-      hideLoading();
-
-      if (result.status === 'success') {
-        renderAbsensi(result.data.absensi || []);
-      } else {
-        showNotification('error', 'Error', result.message);
-      }
-    } catch (err) {
-      hideLoading();
-      showNotification('error', 'Error', err.message);
-    }
-  }
-
-  function renderAbsensi(list) {
-    var tbody = document.getElementById('absensiBody');
-    var countEl = document.getElementById('recordCount');
-
-    countEl.textContent = list.length + ' data';
-
-    if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="table-empty">Tidak ada data absensi ditemukan</td></tr>';
-      return;
-    }
-
-    var html = '';
-    list.forEach(function (a) {
-      try {
-        var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
-        var jam = cleanTime(a.jam);
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Panel Admin - Sistem Absensi Karyawan">
+  <meta name="theme-color" content="#1a4a8a">
+  <title>Admin Panel - Sistem Absensi Karyawan</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a4a8a'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="admin-page" id="adminPage">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+        <div class="sidebar-brand">
+          <h2>Admin Panel</h2>
+          <span>Sistem Absensi</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="sidebar-link active" data-page="dashboard" id="navDashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="sidebar-link" data-page="karyawan" id="navKaryawan">
+          <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Karyawan</span>
+        </button>
+        <button class="sidebar-link" data-page="absensi" id="navAbsensi">
+          <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+          <span>Rekap Absensi</span>
+        </button>
+        <button class="sidebar-link" data-page="settings" id="navSettings">
+          <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+          <span>Pengaturan</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-link" id="adminLogoutBtn">
+          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Topbar -->
+    <div class="admin-topbar" id="adminTopbar">
+      <button class="topbar-toggle" id="sidebarToggle" aria-label="Toggle Menu">
+        <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+      </button>
+      <h2>Admin Panel</h2>
+      <div class="topbar-user">
+        <span id="topbarUserName">Admin</span>
+      </div>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content Area -->
+    <main class="admin-main" id="adminMain">
+
+      <!-- ============ DASHBOARD PAGE ============ -->
+      <section class="admin-content active" id="pageDashboard">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Ringkasan data absensi hari ini</p>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card stat-blue">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTotalKaryawan">0</span>
+              <span class="stat-label">Total Karyawan</span>
+            </div>
+          </div>
+          <div class="stat-card stat-green">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statHadirMasuk">0</span>
+              <span class="stat-label">Hadir Masuk</span>
+            </div>
+          </div>
+          <div class="stat-card stat-orange">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statHadirKeluar">0</span>
+              <span class="stat-label">Hadir Keluar</span>
+            </div>
+          </div>
+          <div class="stat-card stat-red">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statBelumAbsen">0</span>
+              <span class="stat-label">Belum Absen</span>
+            </div>
+          </div>
+          <div class="stat-card stat-purple">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTerlambat">0</span>
+              <span class="stat-label">Terlambat</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Attendance Table -->
+        <div class="admin-card">
+          <div class="card-header">
+            <h3>Absensi Hari Ini</h3>
+            <button class="btn btn-sm btn-outline" id="refreshDashboardBtn">
+              <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="admin-table" id="todayAbsenTable">
+                <thead>
+                  <tr>
+                    <th>NIK</th>
+                    <th>Nama</th>
+                    <th>Masuk</th>
+                    <th>Keluar</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="todayAbsenBody">
+                  <tr><td colspan="5" class="table-empty">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ KARYAWAN PAGE ============ -->
+      <section class="admin-content" id="pageKaryawan">
+        <div class="page-header">
+          <h1>Data Karyawan</h1>
+          <p>Kelola data karyawan perusahaan</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" id="addKaryawanBtn">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Tambah Karyawan
+          </button>
+          <button class="btn btn-outline btn-sm" id="refreshKaryawanBtn">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Refresh
+          </button>
+        </div>
+
+        <!-- Karyawan Table -->
+        <div class="admin-card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="admin-table" id="karyawanTable">
+                <thead>
+                  <tr>
+                    <th>NIK</th>
+                    <th>Nama</th>
+                    <th>Jabatan</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="karyawanBody">
+                  <tr><td colspan="5" class="table-empty">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ABSENSI/REKAP PAGE ============ -->
+      <section class="admin-content" id="pageAbsensi">
+        <div class="page-header">
+          <h1>Rekap Absensi</h1>
+          <p>Lihat riwayat absensi karyawan</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="admin-card mb-3">
+          <div class="card-body">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="filterTanggalDari">Dari Tanggal</label>
+                <input type="date" id="filterTanggalDari" class="form-input filter-input">
+              </div>
+              <div class="filter-group">
+                <label for="filterTanggalSampai">Sampai Tanggal</label>
+                <input type="date" id="filterTanggalSampai" class="form-input filter-input">
+              </div>
+              <div class="filter-group">
+                <label for="filterNik">NIK / Nama</label>
+                <input type="text" id="filterNik" class="form-input filter-input" placeholder="Cari NIK atau nama...">
+              </div>
+              <div class="filter-group filter-actions">
+                <button class="btn btn-primary btn-sm" id="filterAbsenBtn">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                  Filter
+                </button>
+                <button class="btn btn-outline btn-sm" id="resetFilterBtn">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Absensi Table -->
+        <div class="admin-card">
+          <div class="card-header">
+            <h3>Data Absensi</h3>
+            <span class="record-count" id="recordCount">0 data</span>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="admin-table" id="absensiTable">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>NIK</th>
+                    <th>Nama</th>
+                    <th>Jam</th>
+                    <th>Jenis</th>
+                    <th>Status</th>
+                    <th>Lokasi</th>
+                    <th>Alamat</th>
+                    <th>Foto</th>
+                  </tr>
+                </thead>
+                <tbody id="absensiBody">
+                  <tr><td colspan="8" class="table-empty">Gunakan filter untuk menampilkan data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SETTINGS PAGE ============ -->
+      <section class="admin-content" id="pageSettings">
+        <div class="page-header">
+          <h1>Pengaturan Sistem</h1>
+          <p>Konfigurasi jadwal kerja dan kebijakan absensi</p>
+        </div>
         
-        // Pastikan foto_url adalah URL, bukan alamat tersasar
-        var url = a.foto_url || '';
-        var isRealUrl = String(url).startsWith('http');
-        
-        var fotoBtn = isRealUrl
-          ? '<button class="btn-table btn-table-view" data-url="' + url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
-          : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
+        <div class="admin-card" style="max-width: 600px;">
+          <div class="card-header">
+            <h3>Jadwal & Kedisiplinan</h3>
+          </div>
+          <div class="card-body">
+            <form id="settingsForm">
+              <div class="form-group">
+                <label for="setJadwalMasuk">Jam Masuk (Schedule)</label>
+                <div class="input-wrapper">
+                  <input type="time" id="setJadwalMasuk" step="1" class="form-input" style="padding-left:16px" required>
+                </div>
+                <small class="form-hint">Karyawan yang absen masuk setelah jam ini akan ditandai "Terlambat".</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="setToleransi">Toleransi Keterlambatan (Menit)</label>
+                <div class="input-wrapper">
+                  <input type="number" id="setToleransi" class="form-input" style="padding-left:16px" min="0" placeholder="0">
+                </div>
+                <small class="form-hint">Menit tambahan sebelum benar-benar dianggap terlambat. (Contoh: 5 menit).</small>
+              </div>
+              
+              <div class="mt-2">
+                <button type="submit" class="btn btn-primary" id="saveSettingsBtn">
+                  <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                  Simpan Pengaturan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
 
-        var lat = (a.latitude !== undefined && !isNaN(a.latitude)) ? Number(a.latitude).toFixed(5) : '-';
-        var lng = (a.longitude !== undefined && !isNaN(a.longitude)) ? Number(a.longitude).toFixed(5) : '-';
-        var displayAlamat = a.alamat && a.alamat !== '-' ? a.alamat : (isRealUrl ? '-' : url);
+    </main>
+  </div>
 
-        html += '<tr>' +
-          '<td>' + (a.tanggal || '-') + '</td>' +
-          '<td><strong>' + (a.nik || '-') + '</strong></td>' +
-          '<td>' + (a.nama || '-') + '</td>' +
-          '<td>' + jam + '</td>' +
-          '<td><span class="table-badge ' + jenisClass + '">' + (a.jenis || '-') + '</span></td>' +
-          '<td style="font-size:0.75rem;color:var(--text-muted)">' + (lat !== '-' ? lat + ', ' + lng : '-') + '</td>' +
-          '<td style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + displayAlamat + '">' + displayAlamat + '</td>' +
-          '<td>' + fotoBtn + '</td>' +
-          '</tr>';
-      } catch (err) {
-        console.error('Row render error:', err, a);
-      }
+  <!-- Add/Edit Karyawan Modal -->
+  <div class="modal-overlay" id="karyawanModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="karyawanModalTitle">Tambah Karyawan</h3>
+        <button class="modal-close" id="karyawanModalClose" aria-label="Tutup">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="karyawanForm" autocomplete="off">
+          <input type="hidden" id="karyawanEditMode" value="add">
+          <div class="form-group">
+            <label for="karyawanNik">NIK</label>
+            <div class="input-wrapper">
+              <input type="text" id="karyawanNik" class="form-input" style="padding-left:16px" placeholder="Masukkan NIK" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="karyawanNama">Nama Lengkap</label>
+            <div class="input-wrapper">
+              <input type="text" id="karyawanNama" class="form-input" style="padding-left:16px" placeholder="Masukkan nama lengkap" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="karyawanPassword">Password</label>
+            <div class="input-wrapper">
+              <input type="text" id="karyawanPassword" class="form-input" style="padding-left:16px" placeholder="Masukkan password">
+            </div>
+            <small style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;display:block" id="passwordHint">Password akan di-hash otomatis oleh sistem</small>
+          </div>
+          <div class="form-group">
+            <label for="karyawanJabatan">Jabatan</label>
+            <div class="input-wrapper">
+              <input type="text" id="karyawanJabatan" class="form-input" style="padding-left:16px" placeholder="Contoh: Staff IT, Manager, Admin" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="karyawanStatus">Status</label>
+            <div class="input-wrapper">
+              <select id="karyawanStatus" class="form-input" style="padding-left:16px">
+                <option value="aktif">Aktif</option>
+                <option value="nonaktif">Non-Aktif</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="karyawanCancelBtn">Batal</button>
+        <button class="btn btn-primary" id="karyawanSaveBtn">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Viewer Modal -->
+  <div class="modal-overlay" id="photoViewerModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <h3>Foto Absensi</h3>
+        <button class="modal-close" id="photoViewerClose" aria-label="Tutup">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align:center">
+        <img id="photoViewerImg" src="" alt="Foto absensi" style="max-width:100%;border-radius:var(--radius-md)">
+        <p class="mt-1" id="photoViewerInfo" style="font-size:0.85rem;color:var(--text-muted)"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <h3 style="color:var(--danger)">Konfirmasi Hapus</h3>
+        <button class="modal-close" id="deleteModalClose" aria-label="Tutup">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteMessage" style="text-align:center;color:var(--text-secondary)">Yakin ingin menghapus data ini?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="deleteCancelBtn">Batal</button>
+        <button class="btn btn-danger" id="deleteConfirmBtn">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div class="notification-container" id="notificationContainer"></div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <p id="loadingText">Memproses...</p>
+      <p class="loading-sub" id="loadingSubText">Mohon tunggu sebentar</p>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Admin.init();
     });
-
-    tbody.innerHTML = html;
-
-    // Bind photo view buttons
-    tbody.querySelectorAll('.btn-table-view').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var url = this.getAttribute('data-url');
-        var info = this.getAttribute('data-info');
-        
-        // Use thumbnail URL for more reliable display if it's a drive bit
-        var displayUrl = url;
-        if (url.includes('drive.google.com')) {
-          var fileId = url.split('id=')[1];
-          displayUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
-        }
-
-        document.getElementById('photoViewerImg').src = displayUrl;
-        document.getElementById('photoViewerInfo').textContent = info;
-        document.getElementById('photoViewerModal').classList.add('active');
-      });
-    });
-  }
-
-  // ============================================================
-  // Public API
-  // ============================================================
-  return { init: init };
-})();
+  </script>
+</body>
+</html>
