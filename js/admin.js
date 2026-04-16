@@ -525,6 +525,7 @@ const Admin = (() => {
 
     var html = '';
     list.forEach(function (a) {
+      var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
       var fotoBtn = a.foto_url
         ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + a.jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
         : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
