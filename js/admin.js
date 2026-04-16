@@ -535,25 +535,35 @@ const Admin = (() => {
 
     var html = '';
     list.forEach(function (a) {
-      var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
-      var jam = cleanTime(a.jam);
-      var fotoBtn = a.foto_url && String(a.foto_url).includes('http')
-        ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
-        : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
+      try {
+        var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
+        var jam = cleanTime(a.jam);
+        
+        // Pastikan foto_url adalah URL, bukan alamat tersasar
+        var url = a.foto_url || '';
+        var isRealUrl = String(url).startsWith('http');
+        
+        var fotoBtn = isRealUrl
+          ? '<button class="btn-table btn-table-view" data-url="' + url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
+          : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
 
-      var lat = a.latitude && !isNaN(a.latitude) ? Number(a.latitude).toFixed(5) : '-';
-      var lng = a.longitude && !isNaN(a.longitude) ? Number(a.longitude).toFixed(5) : '-';
+        var lat = (a.latitude !== undefined && !isNaN(a.latitude)) ? Number(a.latitude).toFixed(5) : '-';
+        var lng = (a.longitude !== undefined && !isNaN(a.longitude)) ? Number(a.longitude).toFixed(5) : '-';
+        var displayAlamat = a.alamat && a.alamat !== '-' ? a.alamat : (isRealUrl ? '-' : url);
 
-      html += '<tr>' +
-        '<td>' + a.tanggal + '</td>' +
-        '<td><strong>' + a.nik + '</strong></td>' +
-        '<td>' + a.nama + '</td>' +
-        '<td>' + jam + '</td>' +
-        '<td><span class="table-badge ' + jenisClass + '">' + a.jenis + '</span></td>' +
-        '<td style="font-size:0.75rem;color:var(--text-muted)">' + (lat !== '-' ? lat + ', ' + lng : '-') + '</td>' +
-        '<td style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + (a.alamat || '-') + '">' + (a.alamat || '-') + '</td>' +
-        '<td>' + fotoBtn + '</td>' +
-        '</tr>';
+        html += '<tr>' +
+          '<td>' + (a.tanggal || '-') + '</td>' +
+          '<td><strong>' + (a.nik || '-') + '</strong></td>' +
+          '<td>' + (a.nama || '-') + '</td>' +
+          '<td>' + jam + '</td>' +
+          '<td><span class="table-badge ' + jenisClass + '">' + (a.jenis || '-') + '</span></td>' +
+          '<td style="font-size:0.75rem;color:var(--text-muted)">' + (lat !== '-' ? lat + ', ' + lng : '-') + '</td>' +
+          '<td style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + displayAlamat + '">' + displayAlamat + '</td>' +
+          '<td>' + fotoBtn + '</td>' +
+          '</tr>';
+      } catch (err) {
+        console.error('Row render error:', err, a);
+      }
     });
 
     tbody.innerHTML = html;
