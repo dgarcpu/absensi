@@ -207,7 +207,7 @@ const Admin = (() => {
       document.getElementById('filterTanggalDari').value = '';
       document.getElementById('filterTanggalSampai').value = '';
       document.getElementById('filterNik').value = '';
-      document.getElementById('absensiBody').innerHTML = '<tr><td colspan="7" class="table-empty">Gunakan filter untuk menampilkan data</td></tr>';
+      document.getElementById('absensiBody').innerHTML = '<tr><td colspan="8" class="table-empty">Gunakan filter untuk menampilkan data</td></tr>';
       document.getElementById('recordCount').textContent = '0 data';
     });
 
@@ -519,13 +519,12 @@ const Admin = (() => {
     countEl.textContent = list.length + ' data';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Tidak ada data absensi ditemukan</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="table-empty">Tidak ada data absensi ditemukan</td></tr>';
       return;
     }
 
     var html = '';
     list.forEach(function (a) {
-      var jenisClass = a.jenis === 'masuk' ? 'badge-success' : 'badge-info';
       var fotoBtn = a.foto_url
         ? '<button class="btn-table btn-table-view" data-url="' + a.foto_url + '" data-info="' + a.nama + ' - ' + a.tanggal + ' ' + a.jam + '" title="Lihat Foto"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>'
         : '<span style="color:var(--text-light);font-size:0.8rem">-</span>';
@@ -536,7 +535,8 @@ const Admin = (() => {
         '<td>' + a.nama + '</td>' +
         '<td>' + a.jam + '</td>' +
         '<td><span class="table-badge ' + jenisClass + '">' + a.jenis + '</span></td>' +
-        '<td style="font-size:0.78rem;color:var(--text-muted)">' + (a.latitude ? a.latitude + ', ' + a.longitude : '-') + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-muted)">' + (a.latitude ? a.latitude.toFixed(5) + ', ' + a.longitude.toFixed(5) : '-') + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + (a.alamat || '-') + '">' + (a.alamat || '-') + '</td>' +
         '<td>' + fotoBtn + '</td>' +
         '</tr>';
     });
@@ -548,7 +548,15 @@ const Admin = (() => {
       btn.addEventListener('click', function () {
         var url = this.getAttribute('data-url');
         var info = this.getAttribute('data-info');
-        document.getElementById('photoViewerImg').src = url;
+        
+        // Use thumbnail URL for more reliable display if it's a drive bit
+        var displayUrl = url;
+        if (url.includes('drive.google.com')) {
+          var fileId = url.split('id=')[1];
+          displayUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
+        }
+
+        document.getElementById('photoViewerImg').src = displayUrl;
         document.getElementById('photoViewerInfo').textContent = info;
         document.getElementById('photoViewerModal').classList.add('active');
       });
