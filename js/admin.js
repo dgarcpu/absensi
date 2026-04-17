@@ -649,7 +649,7 @@ const Admin = (() => {
   async function loadSettings() {
     showLoading('Memuat pengaturan...');
     try {
-      const result = await Api.doRequest({ action: 'admin_get_settings' });
+      const result = await Api.adminAction('admin_get_settings');
       hideLoading();
 
       if (result.status === 'success') {
@@ -668,8 +668,7 @@ const Admin = (() => {
 
     showLoading('Menyimpan pengaturan...');
     try {
-      const result = await Api.doRequest({
-        action: 'admin_save_settings',
+      const result = await Api.adminAction('admin_save_settings', {
         jadwal_masuk: jadwal,
         toleransi_menit: parseInt(toleransi) || 0
       });
@@ -696,7 +695,7 @@ const Admin = (() => {
   async function loadJadwalList() {
     showLoading('Memuat daftar karyawan...');
     try {
-      const result = await Api.doRequest({ action: 'admin_get_karyawan' });
+      const result = await Api.adminAction('admin_get_karyawan');
       hideLoading();
 
       if (result.status === 'success') {
@@ -757,7 +756,7 @@ const Admin = (() => {
     // Load data
     try {
       showLoading('Memuat jadwal...');
-      const result = await Api.doRequest({ action: 'admin_get_sched_data', nik: nik });
+      const result = await Api.adminAction('admin_get_sched_data', { nik: nik });
       hideLoading();
 
       if (result.status === 'success') {
@@ -807,8 +806,7 @@ const Admin = (() => {
 
      showLoading('Menyimpan jadwal rutin...');
      try {
-        const res = await Api.doRequest({
-           action: 'admin_save_weekly',
+        const res = await Api.adminAction('admin_save_weekly', {
            nik: currentScheduleNik,
            nama: currentScheduleNama,
            schedule: schedule
@@ -828,8 +826,7 @@ const Admin = (() => {
 
      showLoading('Menambah jadwal khusus...');
      try {
-        const res = await Api.doRequest({
-           action: 'admin_save_special',
+        const res = await Api.adminAction('admin_save_special', {
            nik: currentScheduleNik,
            nama: currentScheduleNama,
            tanggal: tanggal,
