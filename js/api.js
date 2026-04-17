@@ -8,7 +8,7 @@ const Api = (() => {
   // ============================================================
   // CONFIGURATION - Ganti URL ini dengan URL Web App GAS Anda
   // ============================================================
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyyqye0PkOCZLr1NGansr6Rqx6zLz-Beep9v2BRUDxoGTrYuyQxX14R4V68kx0cB42f/exec';
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyHbqoM_kmxxAns82p6Fkxb5yDKDqY_lTnr9eXf23ldxIWk_5pRrW9rUVVXm34jV45V/exec';
 
   // ============================================================
   // HTTP Methods
@@ -150,6 +150,26 @@ const Api = (() => {
     return await post(payload);
   }
 
+  /**
+   * Mendapatkan alamat dari koordinat GPS menggunakan backend
+   * @param {number} latitude - GPS latitude
+   * @param {number} longitude - GPS longitude
+   * @returns {Promise<Object>} Address result {status, message, data: {alamat}}
+   */
+  async function getAddress(latitude, longitude) {
+    if (latitude === undefined || longitude === undefined) {
+      throw new Error('Latitude dan Longitude diperlukan');
+    }
+
+    const result = await post({
+      action: 'get_address',
+      latitude: latitude,
+      longitude: longitude,
+    });
+
+    return result;
+  }
+
   // ============================================================
   // Public API
   // ============================================================
@@ -159,6 +179,7 @@ const Api = (() => {
     checkStatus,
     adminAction,
     doRequest,
+    getAddress,
     BASE_URL,
   };
 })();
