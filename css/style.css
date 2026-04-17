@@ -434,6 +434,28 @@ body {
   background: rgba(26, 74, 138, 0.04);
 }
 
+.btn-green {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.btn-green:hover {
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-red {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.btn-red:hover {
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+  transform: translateY(-1px);
+}
+
 .btn-lg {
   padding: 16px 32px;
   font-size: 1.05rem;
@@ -1902,6 +1924,16 @@ body {
 
 .btn-table-view:hover {
   background: var(--success);
+  color: white;
+}
+
+.btn-table-id {
+  background: rgba(168, 85, 247, 0.1);
+  color: rgb(168, 85, 247);
+}
+
+.btn-table-id:hover {
+  background: rgb(168, 85, 247);
   color: white;
 }
 
