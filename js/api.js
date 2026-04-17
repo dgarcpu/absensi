@@ -141,6 +141,15 @@ const Api = (() => {
     return result;
   }
 
+  /**
+   * Generic request function
+   * @param {Object} payload - Request payload
+   * @returns {Promise<Object>} Response
+   */
+  async function doRequest(payload) {
+    return await post(payload);
+  }
+
   // ============================================================
   // Public API
   // ============================================================
@@ -149,6 +158,7 @@ const Api = (() => {
     submitAbsensi,
     checkStatus,
     adminAction,
+    doRequest,
     BASE_URL,
   };
 })();
