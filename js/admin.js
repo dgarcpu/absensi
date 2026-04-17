@@ -41,6 +41,8 @@ const Admin = (() => {
     bindNavigation();
     bindModals();
     loadDashboard();
+    
+    currentAbsensiData = [];
   }
 
   function isAdmin(user) {
@@ -516,11 +518,12 @@ const Admin = (() => {
     var html = '';
     list.forEach(function (k) {
       var statusClass = (k.status && k.status.toLowerCase() === 'aktif') ? 'badge-success' : 'badge-danger';
-      var profilImg = k.foto ? '<img src="' + k.foto + '" class="table-img-mini">' : '<div class="table-img-mini-empty">' + k.nama.charAt(0) + '</div>';
+      var nama = k.nama || 'Tanpa Nama';
+      var profilImg = k.foto ? '<img src="' + k.foto + '" class="table-img-mini">' : '<div class="table-img-mini-empty">' + nama.charAt(0) + '</div>';
       
       html += '<tr>' +
         '<td><div style="display:flex;align-items:center;gap:10px">' + profilImg + '<strong>' + k.nik + '</strong></div></td>' +
-        '<td>' + k.nama + '</td>' +
+        '<td>' + nama + '</td>' +
         '<td>' + k.jabatan + '</td>' +
         '<td><span class="table-badge ' + statusClass + '">' + (k.status || '-') + '</span></td>' +
         '<td class="table-actions">' +
@@ -824,6 +827,11 @@ const Admin = (() => {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4');
+
+    if (typeof doc.autoTable !== 'function') {
+      showNotification('error', 'Error', 'Plugin PDF Table tidak termuat. Silakan muat ulang halaman.');
+      return;
+    }
 
     doc.setFontSize(16);
     doc.text('Laporan Rekap Absensi Karyawan', 14, 15);
