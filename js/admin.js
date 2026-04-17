@@ -10,6 +10,20 @@ const Admin = (() => {
   let attendanceChart = null;
   let currentAbsensiData = []; // Store for export
 
+  function getDirectPhotoUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    if (url.includes('drive.google.com')) {
+      let fileId = '';
+      if (url.includes('id=')) {
+        fileId = url.split('id=')[1].split('&')[0];
+      } else if (url.includes('/d/')) {
+        fileId = url.split('/d/')[1].split('/')[0];
+      }
+      if (fileId) return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
+    }
+    return url;
+  }
+
   // ============================================================
   // INITIALIZATION
   // ============================================================
@@ -519,7 +533,8 @@ const Admin = (() => {
     list.forEach(function (k) {
       var statusClass = (k.status && k.status.toLowerCase() === 'aktif') ? 'badge-success' : 'badge-danger';
       var nama = k.nama || 'Tanpa Nama';
-      var profilImg = k.foto ? '<img src="' + k.foto + '" class="table-img-mini">' : '<div class="table-img-mini-empty">' + nama.charAt(0) + '</div>';
+      var photoUrl = getDirectPhotoUrl(k.foto);
+      var profilImg = photoUrl ? '<img src="' + photoUrl + '" class="table-img-mini">' : '<div class="table-img-mini-empty">' + nama.charAt(0) + '</div>';
       
       html += '<tr>' +
         '<td><div style="display:flex;align-items:center;gap:10px">' + profilImg + '<strong>' + k.nik + '</strong></div></td>' +
@@ -644,8 +659,9 @@ const Admin = (() => {
     document.getElementById('idCardJabatan').textContent = data.jabatan;
     
     const photoEl = document.getElementById('idCardPhoto');
-    if (data.foto) {
-        photoEl.src = data.foto;
+    const photoUrl = getDirectPhotoUrl(data.foto);
+    if (photoUrl) {
+        photoEl.src = photoUrl;
     } else {
         photoEl.src = 'https://via.placeholder.com/120x150?text=No+Photo';
     }
@@ -770,14 +786,7 @@ const Admin = (() => {
         var url = this.getAttribute('data-url');
         var info = this.getAttribute('data-info');
         
-        // Use thumbnail URL for more reliable display if it's a drive bit
-        var displayUrl = url;
-        if (url.includes('drive.google.com')) {
-          var fileId = url.split('id=')[1];
-          displayUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
-        }
-
-        document.getElementById('photoViewerImg').src = displayUrl;
+        document.getElementById('photoViewerImg').src = getDirectPhotoUrl(url);
         document.getElementById('photoViewerInfo').textContent = info;
         document.getElementById('photoViewerModal').classList.add('active');
       });
