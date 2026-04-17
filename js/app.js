@@ -371,6 +371,10 @@ const App = (() => {
     capturedPhoto = null;
     currentLocation = null;
     currentAbsenType = null;
+    
+    // Reset location info
+    const locationAddress = document.getElementById('locationAddress');
+    if (locationAddress) locationAddress.textContent = '';
   }
 
   async function startCamera() {
@@ -514,6 +518,9 @@ const App = (() => {
           locationCoords.textContent = `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)} (±${Math.round(currentLocation.accuracy)}m)`;
         }
 
+        // Fetch address from backend
+        fetchAddress(currentLocation.latitude, currentLocation.longitude);
+
         updateSubmitButtonState();
       },
       (error) => {
@@ -541,6 +548,25 @@ const App = (() => {
         maximumAge: 0,
       }
     );
+  }
+
+  async function fetchAddress(lat, lng) {
+    const locationAddress = document.getElementById('locationAddress');
+    if (!locationAddress) return;
+
+    locationAddress.textContent = 'Mencari alamat...';
+
+    try {
+      const result = await Api.getAddress(lat, lng);
+      if (result.status === 'success' && result.data.alamat) {
+        locationAddress.textContent = result.data.alamat;
+      } else {
+        locationAddress.textContent = 'Alamat tidak ditemukan';
+      }
+    } catch (error) {
+      console.error('Fetch address error:', error);
+      locationAddress.textContent = 'Gagal memuat alamat';
+    }
   }
 
   // ============================================================
