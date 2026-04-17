@@ -151,6 +151,7 @@ const Admin = (() => {
 
     if (pageId === 'dashboard') loadDashboard();
     if (pageId === 'karyawan') loadKaryawan();
+    if (pageId === 'jadwal') loadJadwalList();
     if (pageId === 'settings') loadSettings();
 
     // Close sidebar on mobile after navigation
@@ -212,6 +213,36 @@ const Admin = (() => {
 
     var refKar = document.getElementById('refreshKaryawanBtn');
     if (refKar) refKar.addEventListener('click', loadKaryawan);
+
+    var refJad = document.getElementById('refreshJadwalBtn');
+    if (refJad) refJad.addEventListener('click', loadJadwalList);
+
+    // Schedule Modal
+    var closeS = document.getElementById('scheduleModalClose');
+    if (closeS) closeS.addEventListener('click', closeScheduleModal);
+
+    // Tabs logic
+    var tabs = document.querySelectorAll('.tab-link');
+    tabs.forEach(function(tab) {
+       tab.addEventListener('click', function() {
+          var t = this.getAttribute('data-tab');
+          document.querySelectorAll('.tab-link').forEach(function(l) { l.classList.remove('active'); });
+          document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+          this.classList.add('active');
+          document.getElementById(t).classList.add('active');
+       });
+    });
+
+    // Form Submits
+    document.getElementById('weeklyScheduleForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       saveWeeklySchedule();
+    });
+
+    document.getElementById('specialScheduleForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       saveSpecialSchedule();
+    });
 
     // Absensi filter
     var filterBtn = document.getElementById('filterAbsenBtn');
@@ -609,6 +640,211 @@ const Admin = (() => {
         document.getElementById('photoViewerModal').classList.add('active');
       });
     });
+  }
+
+  // ============================================================
+  // SETTINGS
+  // ============================================================
+
+  async function loadSettings() {
+    showLoading('Memuat pengaturan...');
+    try {
+      const result = await Api.doRequest({ action: 'admin_get_settings' });
+      hideLoading();
+
+      if (result.status === 'success') {
+        document.getElementById('setJadwalMasuk').value = result.data.jadwal_masuk || '08:00:00';
+        document.getElementById('setToleransi').value = result.data.toleransi_menit || 0;
+      }
+    } catch (err) {
+      hideLoading();
+      showNotification('error', 'Error', err.message);
+    }
+  }
+
+  async function saveSettings() {
+    const jadwal = document.getElementById('setJadwalMasuk').value;
+    const toleransi = document.getElementById('setToleransi').value;
+
+    showLoading('Menyimpan pengaturan...');
+    try {
+      const result = await Api.doRequest({
+        action: 'admin_save_settings',
+        jadwal_masuk: jadwal,
+        toleransi_menit: parseInt(toleransi) || 0
+      });
+      hideLoading();
+
+      if (result.status === 'success') {
+        showNotification('success', 'Berhasil', 'Pengaturan berhasil disimpan');
+      } else {
+        showNotification('error', 'Gagal', result.message);
+      }
+    } catch (err) {
+      hideLoading();
+      showNotification('error', 'Error', err.message);
+    }
+  }
+
+  // ============================================================
+  // ADVANCED SCHEDULES
+  // ============================================================
+
+  let currentScheduleNik = '';
+  let currentScheduleNama = '';
+
+  async function loadJadwalList() {
+    showLoading('Memuat daftar karyawan...');
+    try {
+      const result = await Api.doRequest({ action: 'admin_get_karyawan' });
+      hideLoading();
+
+      if (result.status === 'success') {
+        renderJadwalTable(result.data.karyawan || []);
+      }
+    } catch (err) {
+      hideLoading();
+      showNotification('error', 'Error', err.message);
+    }
+  }
+
+  function renderJadwalTable(karyawan) {
+    var tbody = document.getElementById('jadwalBody');
+    if (!tbody) return;
+
+    if (karyawan.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Belum ada data karyawan</td></tr>';
+      return;
+    }
+
+    var html = '';
+    karyawan.forEach(function (k) {
+      html += '<tr>' +
+        '<td>' + k.nik + '</td>' +
+        '<td><strong>' + k.nama + '</strong></td>' +
+        '<td>' + k.jabatan + '</td>' +
+        '<td><span class="table-badge badge-info">Cek via Atur</span></td>' +
+        '<td>' +
+        '<button class="btn btn-primary btn-sm btn-sched" data-nik="' + k.nik + '" data-nama="' + k.nama + '">Atur Jadwal</button>' +
+        '</td>' +
+        '</tr>';
+    });
+
+    tbody.innerHTML = html;
+
+    // Bind buttons
+    tbody.querySelectorAll('.btn-sched').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var nik = this.getAttribute('data-nik');
+        var nama = this.getAttribute('data-nama');
+        openScheduleModal(nik, nama);
+      });
+    });
+  }
+
+  async function openScheduleModal(nik, nama) {
+    currentScheduleNik = nik;
+    currentScheduleNama = nama;
+    document.getElementById('scheduleModalTitle').textContent = 'Atur Jadwal: ' + nama;
+    document.getElementById('scheduleModalSubtitle').textContent = 'NIK: ' + nik;
+
+    // Clear forms
+    document.getElementById('weeklyScheduleForm').reset();
+    document.getElementById('specialSchedBody').innerHTML = '<tr><td colspan="3" class="table-empty">Memuat...</td></tr>';
+    
+    document.getElementById('scheduleModal').classList.add('active');
+
+    // Load data
+    try {
+      showLoading('Memuat jadwal...');
+      const result = await Api.doRequest({ action: 'admin_get_sched_data', nik: nik });
+      hideLoading();
+
+      if (result.status === 'success') {
+        var d = result.data;
+        // Fill weekly
+        if (d.weekly) {
+          var form = document.getElementById('weeklyScheduleForm');
+          for (var day in d.weekly) {
+             var input = form.querySelector('[name="' + day + '"]');
+             if (input) input.value = cleanTime(d.weekly[day]);
+          }
+        }
+        // Fill special
+        renderSpecialSched(d.special || []);
+      }
+    } catch (err) {
+      hideLoading();
+      showNotification('error', 'Error', err.message);
+    }
+  }
+
+  function closeScheduleModal() {
+    document.getElementById('scheduleModal').classList.remove('active');
+  }
+
+  function renderSpecialSched(data) {
+    var tbody = document.getElementById('specialSchedBody');
+    if (!tbody) return;
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="table-empty">Tujuan belum ada jadwal khusus</td></tr>';
+      return;
+    }
+    var html = '';
+    data.forEach(function(s) {
+       html += '<tr><td>' + s.tanggal + '</td><td>' + s.jam_masuk + '</td><td>' + (s.keterangan || '-') + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  async function saveWeeklySchedule() {
+     var form = document.getElementById('weeklyScheduleForm');
+     var inputs = form.querySelectorAll('input[type="time"]');
+     var schedule = {};
+     inputs.forEach(input => {
+        schedule[input.name] = input.value || 'OFF';
+     });
+
+     showLoading('Menyimpan jadwal rutin...');
+     try {
+        const res = await Api.doRequest({
+           action: 'admin_save_weekly',
+           nik: currentScheduleNik,
+           nama: currentScheduleNama,
+           schedule: schedule
+        });
+        hideLoading();
+        if (res.status === 'success') showNotification('success', 'Berhasil', 'Jadwal rutin diperbarui');
+     } catch (err) {
+        hideLoading();
+        showNotification('error', 'Error', err.message);
+     }
+  }
+
+  async function saveSpecialSchedule() {
+     var tanggal = document.getElementById('specDate').value;
+     var jam = document.getElementById('specTime').value;
+     if (!tanggal || !jam) return;
+
+     showLoading('Menambah jadwal khusus...');
+     try {
+        const res = await Api.doRequest({
+           action: 'admin_save_special',
+           nik: currentScheduleNik,
+           nama: currentScheduleNama,
+           tanggal: tanggal,
+           jam_masuk: jam
+        });
+        hideLoading();
+        if (res.status === 'success') {
+           showNotification('success', 'Berhasil', 'Jadwal khusus ditambahkan');
+           // Reload
+           openScheduleModal(currentScheduleNik, currentScheduleNama);
+        }
+     } catch (err) {
+        hideLoading();
+        showNotification('error', 'Error', err.message);
+     }
   }
 
   // ============================================================
