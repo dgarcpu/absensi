@@ -1209,6 +1209,11 @@ body {
   color: var(--danger);
 }
 
+.stat-purple .stat-icon {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
 .notification.warning .notification-icon {
   background: var(--warning-light);
   color: var(--warning);
@@ -2027,4 +2032,70 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ========================================
+   ADVANCED SCHEDULE UI
+   ======================================== */
+
+.tabs-container {
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.tabs-header {
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.tab-link {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tab-link.active {
+  background: white;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+
+.tab-content {
+  display: none;
+  padding: 20px;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.table-sm {
+  font-size: 0.8rem;
+}
+
+.table-sm th, .table-sm td {
+  padding: 8px 12px !important;
+}
+
+@media (max-width: 600px) {
+  .weekly-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
