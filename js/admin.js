@@ -282,6 +282,9 @@ const Admin = (() => {
     var today = new Date().toISOString().split('T')[0];
     document.getElementById('filterTanggalDari').value = today;
     document.getElementById('filterTanggalSampai').value = today;
+    
+    // Initialize empty data
+    currentAbsensiData = [];
   }
 
   // ============================================================
@@ -311,6 +314,22 @@ const Admin = (() => {
       passHint.textContent = 'Password akan di-hash otomatis oleh sistem';
       jabInput.value = '';
       statusInput.value = 'aktif';
+      document.getElementById('karyawanTglLahir').value = '';
+      document.getElementById('karyawanFoto').value = '';
+    } else if (mode === 'edit' && data) {
+      title.textContent = 'Edit Karyawan';
+      editMode.value = 'edit';
+      nikInput.value = data.nik;
+      nikInput.readOnly = true;
+      nikInput.style.opacity = '0.7';
+      namaInput.value = data.nama;
+      passInput.value = '';
+      passInput.placeholder = '(Kosongkan jika tidak diubah)';
+      passHint.textContent = 'Isi hanya jika ingin mengganti password';
+      jabInput.value = data.jabatan;
+      statusInput.value = data.status || 'aktif';
+      document.getElementById('karyawanTglLahir').value = data.tgl_lahir || '';
+      document.getElementById('karyawanFoto').value = '';
     }
 
     modal.classList.add('active');
@@ -763,6 +782,12 @@ const Admin = (() => {
   }
 
   function exportToExcel() {
+    console.log('Exporting to Excel...', currentAbsensiData);
+    if (!window.XLSX) {
+      showNotification('error', 'Error', 'Library Excel (SheetJS) tidak termuat. Periksa koneksi internet Anda.');
+      return;
+    }
+    
     if (currentAbsensiData.length === 0) {
       showNotification('warning', 'Peringatan', 'Tidak ada data untuk diekspor. Silakan filter data terlebih dahulu.');
       return;
@@ -786,6 +811,12 @@ const Admin = (() => {
   }
 
   function exportToPdf() {
+    console.log('Exporting to PDF...', currentAbsensiData);
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      showNotification('error', 'Error', 'Library PDF (jsPDF) tidak termuat. Periksa koneksi internet Anda.');
+      return;
+    }
+
     if (currentAbsensiData.length === 0) {
       showNotification('warning', 'Peringatan', 'Tidak ada data untuk diekspor. Silakan filter data terlebih dahulu.');
       return;
