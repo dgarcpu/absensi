@@ -7,6 +7,8 @@ const Admin = (() => {
 
   let currentUser = null;
   let deleteCallback = null;
+  let attendanceChart = null;
+  let currentAbsensiData = []; // Store for export
 
   // ============================================================
   // INITIALIZATION
@@ -249,13 +251,32 @@ const Admin = (() => {
     if (filterBtn) filterBtn.addEventListener('click', loadAbsensi);
 
     var resetBtn = document.getElementById('resetFilterBtn');
-    if (resetBtn) resetBtn.addEventListener('click', function () {
+    if (resetBtn) resetBtn.addEventListener('click', resetAbsensiFilter);
+
+    var exExcel = document.getElementById('exportExcelBtn');
+    if (exExcel) exExcel.addEventListener('click', exportToExcel);
+
+    var exPdf = document.getElementById('exportPdfBtn');
+    if (exPdf) exPdf.addEventListener('click', exportToPdf);
+
+    // ID Card
+    var closeId = document.getElementById('idCardModalClose');
+    if (closeId) closeId.addEventListener('click', function() {
+        document.getElementById('idCardModal').classList.remove('active');
+    });
+
+    var printId = document.getElementById('printIdCardBtn');
+    if (printId) printId.addEventListener('click', function() {
+        window.print();
+    });
+  }
+
+  function resetAbsensiFilter() {
       document.getElementById('filterTanggalDari').value = '';
       document.getElementById('filterTanggalSampai').value = '';
       document.getElementById('filterNik').value = '';
       document.getElementById('absensiBody').innerHTML = '<tr><td colspan="8" class="table-empty">Gunakan filter untuk menampilkan data</td></tr>';
       document.getElementById('recordCount').textContent = '0 data';
-    });
 
     // Set default date filter to today
     var today = new Date().toISOString().split('T')[0];
@@ -278,19 +299,7 @@ const Admin = (() => {
     var statusInput = document.getElementById('karyawanStatus');
     var passHint = document.getElementById('passwordHint');
 
-    if (mode === 'edit' && data) {
-      title.textContent = 'Edit Karyawan';
-      editMode.value = 'edit';
-      nikInput.value = data.nik;
-      nikInput.readOnly = true;
-      nikInput.style.opacity = '0.6';
-      namaInput.value = data.nama;
-      passInput.value = '';
-      passInput.placeholder = 'Kosongkan jika tidak diubah';
-      passHint.textContent = 'Kosongkan jika tidak ingin mengubah password';
-      jabInput.value = data.jabatan;
-      statusInput.value = data.status ? data.status.toLowerCase() : 'aktif';
-    } else {
+    if (mode === 'add') {
       title.textContent = 'Tambah Karyawan';
       editMode.value = 'add';
       nikInput.value = '';
@@ -342,6 +351,7 @@ const Admin = (() => {
         document.getElementById('statTerlambat').textContent = data.terlambat_count || 0;
 
         renderTodayAbsen(data.today_data || []);
+        renderAttendanceChart(data);
       } else {
         showNotification('error', 'Error', result.message);
       }
@@ -399,6 +409,61 @@ const Admin = (() => {
     tbody.innerHTML = html;
   }
 
+  function renderAttendanceChart(data) {
+    const ctx = document.getElementById('attendanceChart');
+    if (!ctx) return;
+
+    if (attendanceChart) {
+      attendanceChart.destroy();
+    }
+
+    const presentCount = data.hadir_masuk || 0;
+    const absentCount = data.belum_absen || 0;
+    const lateCount = data.terlambat_count || 0;
+    const goneHomeCount = data.hadir_keluar || 0;
+
+    attendanceChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Hadir', 'Sudah Pulang', 'Terlambat', 'Tidak Masuk'],
+        datasets: [{
+          label: 'Jumlah Karyawan',
+          data: [presentCount, goneHomeCount, lateCount, absentCount],
+          backgroundColor: [
+            'rgba(34, 197, 94, 0.6)',
+            'rgba(249, 115, 22, 0.6)',
+            'rgba(168, 85, 247, 0.6)',
+            'rgba(239, 68, 68, 0.6)'
+          ],
+          borderColor: [
+            'rgb(34, 197, 94)',
+            'rgb(249, 115, 22)',
+            'rgb(168, 85, 247)',
+            'rgb(239, 68, 68)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
+
   // ============================================================
   // KARYAWAN CRUD
   // ============================================================
@@ -432,12 +497,17 @@ const Admin = (() => {
     var html = '';
     list.forEach(function (k) {
       var statusClass = (k.status && k.status.toLowerCase() === 'aktif') ? 'badge-success' : 'badge-danger';
+      var profilImg = k.foto ? '<img src="' + k.foto + '" class="table-img-mini">' : '<div class="table-img-mini-empty">' + k.nama.charAt(0) + '</div>';
+      
       html += '<tr>' +
-        '<td><strong>' + k.nik + '</strong></td>' +
+        '<td><div style="display:flex;align-items:center;gap:10px">' + profilImg + '<strong>' + k.nik + '</strong></div></td>' +
         '<td>' + k.nama + '</td>' +
         '<td>' + k.jabatan + '</td>' +
         '<td><span class="table-badge ' + statusClass + '">' + (k.status || '-') + '</span></td>' +
         '<td class="table-actions">' +
+        '<button class="btn-table btn-table-id" data-nik="' + k.nik + '" title="ID Card">' +
+        '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>' +
+        '</button>' +
         '<button class="btn-table btn-table-edit" data-nik="' + k.nik + '" title="Edit">' +
         '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
         '</button>' +
@@ -448,6 +518,15 @@ const Admin = (() => {
     });
 
     tbody.innerHTML = html;
+
+    // Bind ID Card buttons
+    tbody.querySelectorAll('.btn-table-id').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var nik = this.getAttribute('data-nik');
+        var kary = list.find(function (k) { return k.nik === nik; });
+        if (kary) openIDCardModal(kary);
+      });
+    });
 
     // Bind edit buttons
     tbody.querySelectorAll('.btn-table-edit').forEach(function (btn) {
@@ -478,6 +557,8 @@ const Admin = (() => {
     var password = document.getElementById('karyawanPassword').value;
     var jabatan = document.getElementById('karyawanJabatan').value.trim();
     var status = document.getElementById('karyawanStatus').value;
+    var tglLahir = document.getElementById('karyawanTglLahir').value;
+    var fotoFile = document.getElementById('karyawanFoto').files[0];
 
     if (!nik || !nama || !jabatan) {
       showNotification('warning', 'Peringatan', 'NIK, Nama, dan Jabatan wajib diisi');
@@ -490,12 +571,26 @@ const Admin = (() => {
     }
 
     showLoading('Menyimpan karyawan...', '');
+    
+    // Process Photo if exists
+    let fotoBase64 = null;
+    if (fotoFile) {
+      fotoBase64 = await fileToBase64(fotoFile);
+    }
+
     closeKaryawanModal();
 
     try {
       var action = mode === 'add' ? 'admin_add_karyawan' : 'admin_edit_karyawan';
-      var payload = { nik: nik, nama: nama, jabatan: jabatan, status: status };
+      var payload = { 
+        nik: nik, 
+        nama: nama, 
+        jabatan: jabatan, 
+        status: status,
+        tgl_lahir: tglLahir 
+      };
       if (password) payload.password = password;
+      if (fotoBase64) payload.foto_base64 = fotoBase64;
 
       var result = await Api.adminAction(action, payload);
       hideLoading();
@@ -510,6 +605,30 @@ const Admin = (() => {
       hideLoading();
       showNotification('error', 'Error', err.message);
     }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  function openIDCardModal(data) {
+    document.getElementById('idCardNama').textContent = data.nama;
+    document.getElementById('idCardNik').textContent = data.nik;
+    document.getElementById('idCardJabatan').textContent = data.jabatan;
+    
+    const photoEl = document.getElementById('idCardPhoto');
+    if (data.foto) {
+        photoEl.src = data.foto;
+    } else {
+        photoEl.src = 'https://via.placeholder.com/120x150?text=No+Photo';
+    }
+    
+    document.getElementById('idCardModal').classList.add('active');
   }
 
   async function deleteKaryawan(nik) {
@@ -556,7 +675,8 @@ const Admin = (() => {
       hideLoading();
 
       if (result.status === 'success') {
-        renderAbsensi(result.data.absensi || []);
+        currentAbsensiData = result.data.absensi || [];
+        renderAbsensi(currentAbsensiData);
       } else {
         showNotification('error', 'Error', result.message);
       }
@@ -640,6 +760,64 @@ const Admin = (() => {
         document.getElementById('photoViewerModal').classList.add('active');
       });
     });
+  }
+
+  function exportToExcel() {
+    if (currentAbsensiData.length === 0) {
+      showNotification('warning', 'Peringatan', 'Tidak ada data untuk diekspor. Silakan filter data terlebih dahulu.');
+      return;
+    }
+
+    const data = currentAbsensiData.map(row => ({
+      'Tanggal': row.tanggal,
+      'NIK': row.nik,
+      'Nama': row.nama,
+      'Jam': row.jam,
+      'Jenis': row.jenis,
+      'Status': row.status,
+      'Lokasi': `${row.latitude}, ${row.longitude}`,
+      'Alamat': row.alamat
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi");
+    XLSX.writeFile(wb, `Rekap_Absensi_${new Date().getTime()}.xlsx`);
+  }
+
+  function exportToPdf() {
+    if (currentAbsensiData.length === 0) {
+      showNotification('warning', 'Peringatan', 'Tidak ada data untuk diekspor. Silakan filter data terlebih dahulu.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    doc.setFontSize(16);
+    doc.text('Laporan Rekap Absensi Karyawan', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
+
+    const tableData = currentAbsensiData.map(row => [
+      row.tanggal,
+      row.nik,
+      row.nama,
+      row.jam,
+      row.jenis,
+      row.status,
+      row.alamat
+    ]);
+
+    doc.autoTable({
+      startY: 28,
+      head: [['Tanggal', 'NIK', 'Nama', 'Jam', 'Jenis', 'Status', 'Alamat']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [26, 74, 138] }
+    });
+
+    doc.save(`Rekap_Absensi_${new Date().getTime()}.pdf`);
   }
 
   // ============================================================
